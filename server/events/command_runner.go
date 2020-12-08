@@ -101,8 +101,10 @@ type DefaultCommandRunner struct {
 	// SilenceVCSStatusNoPlans is whether autoplan should set commit status if no plans
 	// are found
 	SilenceVCSStatusNoPlans bool
-	ProjectCommandBuilder   ProjectCommandBuilder
-	ProjectCommandRunner    ProjectCommandRunner
+	// SilenceVCSStatus is whether autoplan should set comment status
+	SilenceVCSStatus      bool
+	ProjectCommandBuilder ProjectCommandBuilder
+	ProjectCommandRunner  ProjectCommandRunner
 	// GlobalAutomerge is true if we should automatically merge pull requests if all
 	// plans have been successfully applied. This is set via a CLI flag.
 	GlobalAutomerge   bool
@@ -140,18 +142,29 @@ func (c *DefaultCommandRunner) RunAutoplanCommand(baseRepo models.Repo, headRepo
 
 	projectCmds, err := c.ProjectCommandBuilder.BuildAutoplanCommands(ctx)
 	if err != nil {
-		if statusErr := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.FailedCommitStatus, models.PlanCommand); statusErr != nil {
-			ctx.Log.Warn("unable to update commit status: %s", statusErr)
+		if c.SilenceVCSStatus {
+			ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+		} else {
+			if statusErr := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.FailedCommitStatus, models.PlanCommand); statusErr != nil {
+				ctx.Log.Warn("unable to update commit status: %s", statusErr)
+			}
 		}
 
 		c.updatePull(ctx, AutoplanCommand{}, CommandResult{Error: err})
 		return
 	}
+
 	if len(projectCmds) == 0 {
 		log.Info("determined there was no project to run plan in")
+<<<<<<< HEAD
 		if !c.SilenceVCSStatusNoPlans {
 			// If there were no projects modified, we set successful commit statuses
 			// with 0/0 projects planned/applied successfully because some users require
+=======
+		if !c.SilenceVCSStatusNoPlans && !c.SilenceVCSStatus {
+			// If there were no projects modified, we set a successful commit status
+			// with 0/0 projects planned successfully because some users require
+>>>>>>> Add 'silence-vcs-status' to server configuration
 			// the Atlantis status to be passing for all pull requests.
 			ctx.Log.Debug("setting VCS status to success with no projects found")
 			if err := c.CommitStatusUpdater.UpdateCombinedCount(baseRepo, pull, models.SuccessCommitStatus, models.PlanCommand, 0, 0); err != nil {
@@ -165,8 +178,12 @@ func (c *DefaultCommandRunner) RunAutoplanCommand(baseRepo models.Repo, headRepo
 	}
 
 	// At this point we are sure Atlantis has work to do, so set commit status to pending
-	if err := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.PendingCommitStatus, models.PlanCommand); err != nil {
-		ctx.Log.Warn("unable to update commit status: %s", err)
+	if c.SilenceVCSStatus {
+		ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+	} else {
+		if err := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.PendingCommitStatus, models.PlanCommand); err != nil {
+			ctx.Log.Warn("unable to update commit status: %s", err)
+		}
 	}
 
 	// Only run commands in parallel if enabled
@@ -293,9 +310,12 @@ func (c *DefaultCommandRunner) RunCommentCommand(baseRepo models.Repo, maybeHead
 		}
 		ctx.Log.Info("pull request mergeable status: %t", ctx.PullMergeable)
 	}
-
-	if err = c.CommitStatusUpdater.UpdateCombined(baseRepo, pull, models.PendingCommitStatus, cmd.CommandName()); err != nil {
-		ctx.Log.Warn("unable to update commit status: %s", err)
+	if c.SilenceVCSStatus {
+		ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+	} else {
+		if err = c.CommitStatusUpdater.UpdateCombined(baseRepo, pull, models.PendingCommitStatus, cmd.CommandName()); err != nil {
+			ctx.Log.Warn("unable to update commit status: %s", err)
+		}
 	}
 
 	var projectCmds []models.ProjectCommandContext
@@ -309,9 +329,14 @@ func (c *DefaultCommandRunner) RunCommentCommand(baseRepo models.Repo, maybeHead
 		return
 	}
 	if err != nil {
-		if statusErr := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.FailedCommitStatus, cmd.CommandName()); statusErr != nil {
-			ctx.Log.Warn("unable to update commit status: %s", statusErr)
+		if c.SilenceVCSStatus {
+			ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+		} else {
+			if statusErr := c.CommitStatusUpdater.UpdateCombined(ctx.Pull.BaseRepo, ctx.Pull, models.FailedCommitStatus, cmd.CommandName()); statusErr != nil {
+				ctx.Log.Warn("unable to update commit status: %s", statusErr)
+			}
 		}
+
 		c.updatePull(ctx, cmd, CommandResult{Error: err})
 		return
 	}
@@ -379,8 +404,12 @@ func (c *DefaultCommandRunner) updateCommitStatus(ctx *CommandContext, cmd model
 		}
 	}
 
-	if err := c.CommitStatusUpdater.UpdateCombinedCount(ctx.Pull.BaseRepo, ctx.Pull, status, cmd, numSuccess, len(pullStatus.Projects)); err != nil {
-		ctx.Log.Warn("unable to update commit status: %s", err)
+	if c.SilenceVCSStatus {
+		ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+	} else {
+		if err := c.CommitStatusUpdater.UpdateCombinedCount(ctx.Pull.BaseRepo, ctx.Pull, status, cmd, numSuccess, len(pullStatus.Projects)); err != nil {
+			ctx.Log.Warn("unable to update commit status: %s", err)
+		}
 	}
 }
 

@@ -491,6 +491,12 @@ Values are chosen in this order:
   ```
   `--skip-clone-no-changes` will skip cloning the repo during autoplan if there are no changes to Terraform projects. This will only apply for GitHub and GitLab and only for repos that have `atlantis.yaml` file. Defaults to `false`.
 
+* ### `silence-vcs-status`
+  ```bash
+  atlantis server --silence-vcs-status
+  ```
+  In normal circumstances, Atlantis will post a status update to VCS to reflect status of plan/apply process. In some cases (such as running multiple pipelines with a merge bot), we dont want merge bot be interfered by this status update. This flag is used to disable it
+
 * ### `--slack-token`
   ```bash
   atlantis server --slack-token=token

@@ -19,6 +19,7 @@ import (
 type ApplyStepRunner struct {
 	TerraformExecutor   TerraformExec
 	CommitStatusUpdater StatusUpdater
+	SilenceVCSStatus    bool
 	AsyncTFExec         AsyncTFExec
 }
 
@@ -133,6 +134,10 @@ func (a *ApplyStepRunner) runRemoteApply(
 
 	// updateStatusF will update the commit status and log any error.
 	updateStatusF := func(status models.CommitStatus, url string) {
+		if a.SilenceVCSStatus {
+			ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+			return
+		}
 		if err := a.CommitStatusUpdater.UpdateProject(ctx, models.ApplyCommand, status, url); err != nil {
 			ctx.Log.Err("unable to update status: %s", err)
 		}
