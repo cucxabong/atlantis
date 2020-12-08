@@ -81,6 +81,7 @@ const (
 	RequireMergeableFlag       = "require-mergeable"
 	SilenceForkPRErrorsFlag    = "silence-fork-pr-errors"
 	SilenceVCSStatusNoPlans    = "silence-vcs-status-no-plans"
+	SilenceVCSStatus           = "silence-vcs-status"
 	SilenceAllowlistErrorsFlag = "silence-allowlist-errors"
 	// SilenceWhitelistErrorsFlag is deprecated for SilenceAllowlistErrorsFlag.
 	SilenceWhitelistErrorsFlag = "silence-whitelist-errors"
@@ -308,6 +309,10 @@ var boolFlags = map[string]boolFlag{
 	},
 	SilenceForkPRErrorsFlag: {
 		description:  "Silences the posting of fork pull requests not allowed error comments.",
+		defaultValue: false,
+	},
+	SilenceVCSStatus: {
+		description:  "Silences all VCS commit status",
 		defaultValue: false,
 	},
 	SilenceVCSStatusNoPlans: {

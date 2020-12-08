@@ -30,6 +30,7 @@ type PlanStepRunner struct {
 	TerraformExecutor   TerraformExec
 	DefaultTFVersion    *version.Version
 	CommitStatusUpdater StatusUpdater
+	SilenceVCSStatus    bool
 	AsyncTFExec         AsyncTFExec
 }
 
@@ -257,6 +258,11 @@ func (p *PlanStepRunner) runRemotePlan(
 
 	// updateStatusF will update the commit status and log any error.
 	updateStatusF := func(status models.CommitStatus, url string) {
+		if p.SilenceVCSStatus {
+			ctx.Log.Debug("skip update VCS status when 'silence-vcs-status' enabled")
+			return
+		}
+
 		if err := p.CommitStatusUpdater.UpdateProject(ctx, models.PlanCommand, status, url); err != nil {
 			ctx.Log.Err("unable to update status: %s", err)
 		}
