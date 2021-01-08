@@ -37,6 +37,7 @@ var parser = events.EventParser{
 	GitlabUser:         "gitlab-user",
 	GitlabToken:        "gitlab-token",
 	AllowDraftPRs:      false,
+	IgnoreUsers:        []string{"example-bot"},
 	BitbucketUser:      "bitbucket-user",
 	BitbucketToken:     "bitbucket-token",
 	BitbucketServerURL: "http://mycorp.com:7490",
@@ -461,6 +462,10 @@ func TestParseGitlabMergeEvent_Update_ActionType(t *testing.T) {
 		{
 			filename: "gitlab-merge-request-event-update-target-branch.json",
 			exp:      models.UpdatedPullEvent,
+		},
+		{
+			filename: "gitlab-merge-request-event-update-ignore-users.json",
+			exp:      models.OtherPullEvent,
 		},
 	}
 

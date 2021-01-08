@@ -272,6 +272,7 @@ type EventParser struct {
 	GithubToken        string
 	GitlabUser         string
 	GitlabToken        string
+	IgnoreUsers        []string
 	AllowDraftPRs      bool
 	BitbucketUser      string
 	BitbucketToken     string
@@ -523,6 +524,13 @@ func (e *EventParser) ParseGithubRepo(ghRepo *github.Repository) (models.Repo, e
 
 // ParseGitlabMergeRequestUpdateEvent dives deeper into Gitlab merge request update events
 func (e *EventParser) ParseGitlabMergeRequestUpdateEvent(event gitlab.MergeEvent) models.PullRequestEventType {
+	// Ignore events made by 'IgnoreUsers'
+	for _, username := range e.IgnoreUsers {
+		if event.User.Username == username {
+			return models.OtherPullEvent
+		}
+	}
+
 	// New commit to opened MR
 	if len(event.ObjectAttributes.OldRev) > 0 {
 		return models.UpdatedPullEvent
