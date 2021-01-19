@@ -40,6 +40,19 @@ func (w *DefaultPreWorkflowHooksCommandRunner) RunPreHooks(
 	pull models.PullRequest,
 	user models.User,
 ) {
+
+	preWorkflowHooks := make([]*valid.PreWorkflowHook, 0)
+	for _, repo := range w.GlobalCfg.Repos {
+		if repo.IDMatches(baseRepo.ID()) && len(repo.PreWorkflowHooks) > 0 {
+			preWorkflowHooks = append(preWorkflowHooks, repo.PreWorkflowHooks...)
+		}
+	}
+
+	if len(preWorkflowHooks) == 0 {
+		w.Logger.Log(logging.Info, "skip preWorkflowHooks runner as it's not defined")
+		return
+	}
+
 	if opStarted := w.Drainer.StartOp(); !opStarted {
 		if commentErr := w.VCSClient.CreateComment(baseRepo, pull.Num, ShutdownComment, "pre_workflow_hooks"); commentErr != nil {
 			w.Logger.Log(logging.Error, "unable to comment that Atlantis is shutting down: %s", commentErr)
@@ -65,13 +78,6 @@ func (w *DefaultPreWorkflowHooksCommandRunner) RunPreHooks(
 	if err != nil {
 		log.Err("unable to run pre workflow hooks: %s", err)
 		return
-	}
-
-	preWorkflowHooks := make([]*valid.PreWorkflowHook, 0)
-	for _, repo := range w.GlobalCfg.Repos {
-		if repo.IDMatches(baseRepo.ID()) && len(repo.PreWorkflowHooks) > 0 {
-			preWorkflowHooks = append(preWorkflowHooks, repo.PreWorkflowHooks...)
-		}
 	}
 
 	ctx := models.PreWorkflowHookCommandContext{
