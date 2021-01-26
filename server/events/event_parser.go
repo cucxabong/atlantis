@@ -524,13 +524,6 @@ func (e *EventParser) ParseGithubRepo(ghRepo *github.Repository) (models.Repo, e
 
 // ParseGitlabMergeRequestUpdateEvent dives deeper into Gitlab merge request update events
 func (e *EventParser) ParseGitlabMergeRequestUpdateEvent(event gitlab.MergeEvent) models.PullRequestEventType {
-	// Ignore events made by 'IgnoreUsers'
-	for _, username := range e.IgnoreUsers {
-		if event.User.Username == username {
-			return models.OtherPullEvent
-		}
-	}
-
 	// New commit to an opened MR
 	if len(event.ObjectAttributes.OldRev) > 0 {
 		return models.UpdatedPullEvent
@@ -570,11 +563,27 @@ func (e *EventParser) ParseGitlabMergeRequestEvent(event gitlab.MergeEvent) (pul
 		BaseRepo:   baseRepo,
 	}
 
+	isUserIgnored := false
+	for _, username := range e.IgnoreUsers {
+		if username == event.User.Username {
+			isUserIgnored = true
+			break
+		}
+	}
+
 	switch event.ObjectAttributes.Action {
 	case "open":
-		eventType = models.OpenedPullEvent
+		if isUserIgnored {
+			eventType = models.OtherPullEvent
+		} else {
+			eventType = models.OpenedPullEvent
+		}
 	case "update":
-		eventType = e.ParseGitlabMergeRequestUpdateEvent(event)
+		if isUserIgnored {
+			eventType = models.OtherPullEvent
+		} else {
+			eventType = e.ParseGitlabMergeRequestUpdateEvent(event)
+		}
 	case "merge", "close":
 		eventType = models.ClosedPullEvent
 	default:
